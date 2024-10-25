@@ -19,7 +19,7 @@ class PredictionRequest(BaseModel):
     
 app = FastAPI()
 model = CatBoostClassifier()
-model.load_model("hukchallenge\catmodel", format='cbm')
+model.load_model("catmodel", format='cbm')
 
 @app.post("/items/")
 async def create_item(item: PredictionRequest):
