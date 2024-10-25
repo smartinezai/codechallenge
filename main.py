@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import pandas as pd
-
+from catboost import CatBoostClassifier
+import uvicorn
+import sys
 
 class PredictionRequest(BaseModel):
     Geschlecht: str
@@ -14,22 +16,31 @@ class PredictionRequest(BaseModel):
     Jahresbeitrag: float
     Vertriebskanal: int
     Kundentreue: int
-
+    
 app = FastAPI()
-
+model = CatBoostClassifier()
+model.load_model("hukchallenge\catmodel", format='cbm')
 
 @app.post("/items/")
 async def create_item(item: PredictionRequest):
     df = pd.DataFrame(columns=['Geschlecht', 'Alter', 'Fahrerlaubnis', 'Regional_Code', 'Vorversicherung', 'Alter_Fzg', 'Vorschaden', 'Jahresbeitrag','Vertriebskanal', 'Kundentreue'])
-    df['Geschlecht'] = item.Geschlecht
-    df['Alter'] = item.Alter
-    df['Fahrerlaubnis'] = item.Fahrerlaubnis
-    df['Regional_Code'] = item.Regional_Code
-    df['Vorversicherung'] = item.Vorversicherung
-    df['Alter_Fzg'] = item.Alter_Fzg
-    df['Vorschaden'] = item.Vorschaden
-    df['Jahresbeitrag'] = item.Jahresbeitrag
-    df['Vertriebskanal'] = item.Vertriebskanal
-    df['Kundentreue'] = item.Kundentreue
-    categorical_cols =['Geschlecht', 'Alter_Fzg', "Vorschaden"]
-    return item
+    df.loc[0] = [item.Geschlecht, item.Alter, item.Fahrerlaubnis, item.Regional_Code, item.Vorversicherung, item.Alter_Fzg, item.Vorschaden, item.Jahresbeitrag, item.Vertriebskanal, item.Kundentreue]
+    print(df)
+    
+    pred = model.predict(df)
+    print(pred)
+    return { 'result': bool(pred[0]) }
+
+
+def main():
+  try:
+    uvicorn.run(app, host="0.0.0.0", port = 80)
+
+  except Exception as e:
+    print(f'[-]  Major issue starting web server: {e}')
+    print(e)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
